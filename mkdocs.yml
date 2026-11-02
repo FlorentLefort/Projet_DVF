@@ -1,0 +1,83 @@
+site_name: !ENV [SITE_NAME, "Projet fil rouge - Real Estate Analysis"]
+site_description: Documentation du projet fil rouge AE Hero (dbt, DuckDB, DVF)
+site_url: ""
+
+docs_dir: !ENV [DOCS_DIR, docs]
+
+# Une page = un fichier .html : évite la collision avec le dossier dbt-docs/
+# publié par le workflow et garde des liens relatifs simples.
+use_directory_urls: false
+
+# Lien du pied de page : remplacez-le par la page de la formation
+copyright: >-
+  Fait avec <a href="https://github.com/AE-Hero">AE Hero</a>, la formation pour
+  devenir un boss en Analytics Engineering
+
+theme:
+  name: material
+  language: fr
+  favicon: assets/favicon.svg
+  logo: assets/favicon.svg
+  font:
+    text: Inter
+    code: JetBrains Mono
+  palette:
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Mode sombre
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Mode clair
+  features:
+    - navigation.tabs
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+
+# Les pages Dashboards et Documentation dbt intègrent des dossiers (charts/, dbt-docs/, elementary/)
+# produits par le workflow de déploiement : ils n'existent pas dans docs/.
+validation:
+  nav:
+    not_found: ignore
+    omitted_files: ignore
+  links:
+    not_found: ignore
+    unrecognized_links: ignore
+
+nav:
+  - Accueil: index.md
+  - 📊 Dashboards: dashboards.md
+  - 📒 Documentation dbt: dbt-docs.md
+  - 🔍 Qualité des données: qualite-donnees.md
+  - 🧭 Explorateur SQL: explorer.md
+
+extra:
+  generator: false
+
+extra_css:
+  - stylesheets/site.css
+  - stylesheets/explorer.css
+
+extra_javascript:
+  - path: javascripts/explorer.js
+    type: module
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: false
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg

@@ -1,0 +1,47 @@
+
+# Full documentation: https://docs.getdbt.com/docs
+
+# real-estate-analysis project setup
+name: 'real_estate_analysis'
+version: '1.0.0'
+
+profile: 'real_estate_analysis'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+on-run-start:
+  - "{{ load_dvf() }}"
+
+vars:
+  dvf_departements: ["59"]
+  dvf_years: [2022, 2023]
+  dvf_reload: false
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  real_estate_analysis:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table
+    exposures:
+      +materialized: table
+
+  # elementary setup
+  elementary:
+    +schema: elementary
+
+# dbt-project-evaluator setup
+data_tests:
+  dbt_project_evaluator:
+    +severity: "{{ 'error' if target.name == 'ci' else 'warn' }}"

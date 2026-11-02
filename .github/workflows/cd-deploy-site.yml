@@ -1,0 +1,131 @@
+name: ⚙️ CD - Deploy site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "docs-requirements.txt"
+      - "requirements.txt"
+      - ".github/workflows/cd-deploy-site.yml"
+      - ".github/scripts/export_parquet.py"
+
+  # Reconstruit le site après chaque déploiement preprod / prod
+  workflow_run:
+    workflows: ["CD - Deploy preprod db & dashboards", "⚙️ CD - Deploy prod db & dashboards"]
+    types: [completed]
+
+  workflow_dispatch:
+
+concurrency:
+  group: docs-pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DBT_PROFILES_DIR: .
+  EXPORT_SCHEMAS: ""
+  EXPORT_MAX_TABLE_MB: "100"
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            docs-requirements.txt
+            requirements.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r docs-requirements.txt
+          pip install -r requirements.txt
+
+      # Bases et boards publiés par les CD preprod / prod.
+      # Absents au tout premier run : on continue sans.
+      - name: Download published DBs and boards
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p real_estate_analysis/_downloads
+          for env in prod preprod; do
+            gh release download "db-${env}" --pattern "${env}.duckdb" \
+              --dir real_estate_analysis --clobber || echo "Pas de base ${env} publiée."
+            gh release download "db-${env}" --pattern "charts-${env}.tar.gz" \
+              --dir real_estate_analysis/_downloads --clobber || true
+          done
+
+      # Un site complet par environnement (site/prod/ et site/preprod/) :
+      # pages MkDocs, doc dbt, données Parquet de l'explorateur, dashboards.
+      # La logique est dans .github/scripts/build_site.py
+      - name: Build one site per environment
+        env:
+          DBT_PROFILES_DIR: .
+        run: |
+          python .github/scripts/cd-build-site.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --schemas "$EXPORT_SCHEMAS" \
+            --max-table-mb "$EXPORT_MAX_TABLE_MB"
+
+      # TODO : décommenter ces lignes (et le job deploy-pages) pour publier le site sur GitHub Pages
+      # - uses: actions/configure-pages@v5
+      #   if: github.event.repository.private == false
+
+      # - uses: actions/upload-pages-artifact@v3
+      #   if: github.event.repository.private == false
+      #   with:
+      #     path: site
+
+      # Copie du site pour le job Netlify (fonctionne aussi avec un repo privé)
+      - uses: actions/upload-artifact@v4
+        if: vars.NETLIFY_SITE_ID != ''
+        with:
+          name: site
+          path: site
+          retention-days: 1
+
+  # Déploiement Netlify : actif seulement si la variable NETLIFY_SITE_ID est définie
+  # (Settings → Secrets and variables → Actions), avec le secret NETLIFY_AUTH_TOKEN.
+  deploy-netlify:
+    name: Deploy to Netlify
+    needs: build
+    if: vars.NETLIFY_SITE_ID != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: site
+
+      - name: Deploy
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
+        run: npx --yes netlify-cli@17 deploy --dir=site --prod
+
+  # TODO : décommenter ce job (et les deux étapes Pages du job build) pour publier le site sur GitHub Pages
+  # deploy-pages:
+  #   name: Deploy to GitHub Pages
+  #   needs: build
+  #   if: github.event.repository.private == false
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     pages: write
+  #     id-token: write
+  #   environment:
+  #     name: github-pages
+  #     url: ${{ steps.deployment.outputs.page_url }}
+  #   steps:
+  #     - id: deployment
+  #       uses: actions/deploy-pages@v4

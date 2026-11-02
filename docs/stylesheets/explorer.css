@@ -1,0 +1,351 @@
+/* Explorateur SQL (thème Material) : tables en bandeau, éditeur, puis résultats */
+
+.dbx {
+  /* correspondance avec les couleurs du thème Material (suit le mode sombre) */
+  --background: var(--md-default-bg-color);
+  --foreground: var(--md-default-fg-color);
+  --border: var(--md-default-fg-color--lightest);
+  --muted: var(--md-code-bg-color);
+  --muted-foreground: var(--md-default-fg-color--light);
+  --primary: var(--md-accent-fg-color);
+  --primary-foreground: #fff;
+  --accent: var(--md-accent-fg-color--transparent);
+  --ring: var(--md-accent-fg-color);
+  --destructive: #dc2626;
+  --radius: 0.6rem;
+  --font-mono: var(--md-code-font-family);
+  --dbx-border: var(--border);
+  --dbx-muted: var(--muted-foreground);
+  --dbx-bg-alt: var(--muted);
+  --dbx-editor-h: 8rem;  /* hauteur de l'éditeur : se règle en tirant la barre de séparation */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* tables · onglets · barre d'outils · éditeur · séparateur · résultats */
+  grid-template-rows: auto auto auto var(--dbx-editor-h) 6px minmax(280px, 1fr);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  /* occupe toute la hauteur de l'écran sous l'en-tête ; la doc se lit en dessous */
+  height: max(calc(100vh - 9.5rem), 780px);
+  height: max(calc(100dvh - 9.5rem), 780px);  /* la page défile si l'écran est petit */
+  min-height: 780px;
+  border: 1px solid var(--dbx-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-size: 0.78rem;
+  background: var(--background);
+}
+.dbx > * {
+  min-width: 0;
+}
+.dbx button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* ---------- bandeau de tables ---------- */
+.dbx-tables {
+  border-bottom: 1px solid var(--dbx-border);
+  background: var(--dbx-bg-alt);
+}
+.dbx-tables-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 1rem 0.5rem;
+}
+.dbx-count {
+  color: var(--dbx-muted);
+}
+.dbx-search {
+  flex: 0 1 18rem;
+  margin-left: auto;
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+  color: var(--foreground);
+  background: var(--background);
+  border: 1px solid var(--dbx-border);
+  border-radius: 0.2rem;
+}
+
+.dbx-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-height: 4.6rem;
+  padding: 0.3rem 1rem 0.9rem;
+  overflow-y: auto;
+}
+.dbx-chip {
+  transition: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  background: var(--background);
+  border: 1px solid var(--dbx-border);
+  border-radius: 1rem;
+}
+.dbx-chip[hidden] {
+  display: none;
+}
+.dbx-chip small {
+  color: var(--dbx-muted);
+  font-size: 0.62rem;
+}
+.dbx-chip:hover {
+  border-color: var(--ring);
+}
+.dbx-chip.is-active {
+  color: #fff !important;
+  background: linear-gradient(90deg, #672863, #b04267) border-box !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+}
+.dbx-chip.is-active small {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.dbx-panel {
+  max-height: 8.5rem;
+  padding: 0.8rem 1rem 0.9rem;
+  overflow: auto;
+  background: var(--background);
+  border-top: 1px solid var(--dbx-border);
+}
+.dbx-panel[hidden] {
+  display: none;
+}
+.dbx-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+}
+.dbx-panel-meta {
+  color: var(--dbx-muted);
+}
+.dbx-cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.dbx-col {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  background: var(--dbx-bg-alt);
+  border: 1px solid transparent;
+  border-radius: 0.2rem;
+}
+.dbx-col:hover {
+  border-color: var(--ring);
+}
+.dbx-col small {
+  color: var(--dbx-muted);
+  font-size: 0.6rem;
+}
+
+/* ---------- onglets et barre d'outils ---------- */
+.dbx-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0.6rem 0.8rem 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--dbx-border);
+  background: var(--dbx-bg-alt);
+}
+.dbx-tab {
+  display: flex;
+  align-items: center;
+  flex: none;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 0.25rem 0.25rem 0 0;
+}
+.dbx-tab.is-active {
+  box-shadow: inset 0 3px 0 #b04267;
+  background: var(--background);
+  border-color: var(--dbx-border);
+  margin-bottom: -1px;
+  padding-bottom: 1px;
+}
+.dbx-tab-label {
+  padding: 0.5rem 0.4rem 0.5rem 0.9rem;
+  background: none;
+  border: 0;
+}
+.dbx-tab:not(.is-active) .dbx-tab-label {
+  color: var(--dbx-muted);
+}
+.dbx-tab-close,
+.dbx-tab-add {
+  padding: 0.2rem 0.45rem;
+  color: var(--dbx-muted);
+  background: none;
+  border: 0;
+  border-radius: 0.2rem;
+}
+.dbx-tab-close:hover,
+.dbx-tab-add:hover {
+  color: var(--ring);
+}
+.dbx-tab-add {
+  align-self: center;
+  font-size: 0.95rem;
+}
+
+.dbx-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--dbx-border);
+}
+.dbx-spacer {
+  flex: 1;
+}
+.dbx-hint {
+  color: var(--dbx-muted);
+  font-size: 0.65rem;
+}
+.dbx-btn {
+  padding: 0.4rem 0.9rem;
+  background: var(--background);
+  border: 1px solid var(--dbx-border);
+  border-radius: 0.3rem;
+}
+.dbx-btn-small {
+  padding: 0.15rem 0.5rem;
+}
+.dbx-btn:hover:not(:disabled) {
+  border-color: var(--ring);
+}
+.dbx-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.dbx-btn-primary {
+  color: #fff !important;
+  background: linear-gradient(90deg, #672863, #b04267 60%, #e6725d) border-box;
+  border-color: transparent;
+}
+
+/* ---------- éditeur ---------- */
+.dbx-editor {
+  min-height: 0;
+}
+.dbx-editor textarea {
+  display: block;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 1rem 1.2rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  line-height: 1.65;
+  tab-size: 2;
+  color: var(--foreground);
+  background: var(--background);
+  border: 0;
+  outline: none;
+  resize: none;
+}
+
+.dbx-split {
+  cursor: row-resize;
+  background: var(--dbx-bg-alt);
+  border-top: 1px solid var(--dbx-border);
+  border-bottom: 1px solid var(--dbx-border);
+  touch-action: none;
+}
+.dbx-split:hover {
+  background: var(--accent);
+}
+
+/* ---------- résultats : le tableau défile dans sa zone, jamais dans la page ---------- */
+.dbx-results {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.dbx-result-bar {
+  padding: 0.6rem 1.1rem;
+  color: var(--dbx-muted);
+  border-bottom: 1px solid var(--dbx-border);
+}
+.dbx-result-bar[data-kind="ok"] {
+  color: var(--foreground);
+}
+.dbx-result-bar[data-kind="error"] {
+  color: var(--destructive);
+  font-weight: 700;
+}
+.dbx-result-body {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.dbx-error {
+  margin: 0;
+  padding: 1rem 1.2rem;
+  white-space: pre-wrap;
+  color: var(--destructive);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+}
+
+.dbx-grid {
+  min-width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+.dbx-grid th,
+.dbx-grid td {
+  padding: 0.5rem 1.1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--dbx-border);
+}
+.dbx-grid th {
+  border-bottom: 2px solid #b04267;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-weight: 700;
+  background: var(--dbx-bg-alt);
+}
+.dbx-grid tbody tr:hover {
+  background: var(--accent);
+}
+.dbx-grid .dbx-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.dbx-grid .dbx-rownum {
+  width: 1%;
+  color: var(--dbx-muted);
+  text-align: right;
+  background: var(--dbx-bg-alt);
+}
+.dbx-grid td.dbx-null {
+  color: var(--dbx-muted);
+  font-style: italic;
+}
+
+@media (max-width: 700px) {
+  .dbx-hint {
+    display: none;
+  }
+  .dbx-search {
+    flex: 1;
+  }
+}
